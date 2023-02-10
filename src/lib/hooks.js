@@ -5,9 +5,9 @@ define(
     function (options) {
         function useState(initial) {
             const oldHook =
-                options.currentComponent.oldCommitRoot &&
-                options.currentComponent.oldCommitRoot._hooks &&
-                options.currentComponent.oldCommitRoot._hooks[options.hookIndex]
+                options.currentComponent.oldVNode &&
+                options.currentComponent.oldVNode._hooks &&
+                options.currentComponent.oldVNode._hooks[options.hookIndex]
 
             const hook = {
                 tag: "",
@@ -16,24 +16,27 @@ define(
             }
 
             const actions = oldHook ? oldHook.queue : []
-            actions.forEach(action => hook.state = action(hook.state))
+
+            actions.forEach(action => {
+                hook.state = action(hook.state)
+            })
+
+            options.currentComponent._hooks.push(hook)
+            let hookIndex = options.hookIndex
+            options.hookIndex++
 
             const setState = action => {
-                console.log("setState()")
-
-                hook.queue.push(action)
-
+                options.currentComponent._hooks[hookIndex].queue.push(action)
                 options.currentRoot = {
                     dom: options.oldCommitRoot.dom,
                     props: options.oldCommitRoot.props,
-                    oldCommitRoot: options.oldCommitRoot,
+                    oldVNode: options.oldCommitRoot,
                 }
                 options.deletions = []
                 options.nextUnitOfWork = options.currentRoot
             }
 
-            options.currentComponent._hooks.push(hook)
-            options.hookIndex++
+
 
             return [
                 hook.state,

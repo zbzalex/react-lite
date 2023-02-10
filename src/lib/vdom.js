@@ -11,7 +11,9 @@ define(
                 type,
                 props: {
                     ...props || {},
-                    children: children ? children.map(child => typeof child === "string" ? createTextElement(child) : child) : []
+                    children: children
+                        ? children.map(child => typeof child === "string" ? createTextElement(child) : child)
+                        : []
                 }
             }
         }
@@ -26,6 +28,24 @@ define(
             }
         }
 
+        function View(children, props) {
+            return createElement("div", props, children)
+        }
+
+        function Text(text) {
+            return createTextElement(text)
+        }
+
+        function Button(label, props) {
+            return createElement("button", props, [
+                Text(label)
+            ])
+        }
+
+        function Input(props) {
+            return createElement("input", props)
+        }
+
         function render(element, container) {
             options.currentRoot = {
                 dom: container,
@@ -34,8 +54,7 @@ define(
                         element
                     ],
                 },
-
-                oldCommitRoot: options.oldCommitRoot,
+                oldVNode: options.oldCommitRoot,
             };
 
             options.deletions = [];
@@ -120,8 +139,6 @@ define(
             let children = []
             if (isFunctionComponent) {
                 options.currentComponent = vnode
-                options.hookIndex = 0;
-                options.pendingEffects = []
 
                 vnode._hooks = vnode._hooks || []
 
@@ -132,9 +149,9 @@ define(
                     .filter(hookIndex => vnode._hooks[hookIndex].tag === "EFFECT")
                     .forEach(hookIndex => {
                         const oldHook =
-                            vnode.oldCommitRoot &&
-                            vnode.oldCommitRoot._hooks &&
-                            vnode.oldCommitRoot._hooks[hookIndex]
+                            vnode.oldVNode &&
+                            vnode.oldVNode._hooks &&
+                            vnode.oldVNode._hooks[hookIndex]
 
                         const hook = vnode._hooks[hookIndex]
                         const depsChanged = (prev, next) => (_, index) => prev[index] !== next[index];
@@ -159,8 +176,8 @@ define(
             let index = 0
 
             let oldVNode =
-                vnode.oldCommitRoot
-                && vnode.oldCommitRoot.child
+                vnode.oldVNode
+                && vnode.oldVNode.child
 
             let prevSibling = null
 
@@ -182,7 +199,7 @@ define(
                         props: child.props,
                         dom: oldVNode.dom,
                         parent: vnode,
-                        oldCommitRoot: oldVNode,
+                        oldVNode: oldVNode,
                         effectTag: "UPDATE",
                     }
                 }
@@ -193,7 +210,7 @@ define(
                         props: child.props,
                         dom: null,
                         parent: vnode,
-                        oldCommitRoot: null,
+                        oldVNode: null,
                         effectTag: "PLACEMENT",
                     }
                 }
@@ -258,8 +275,9 @@ define(
 
             options.oldCommitRoot = options.currentRoot;
             options.currentRoot = null
-
             options.pendingEffects.forEach(it => it())
+            options.pendingEffects = []
+            options.hookIndex = 0
         }
 
         function commitWork(vnode) {
@@ -285,7 +303,7 @@ define(
             ) {
                 updateDom(
                     vnode.dom,
-                    vnode.oldCommitRoot.props,
+                    vnode.oldVNode.props,
                     vnode.props
                 )
             } else if (vnode.effectTag === "DELETION") {
@@ -311,6 +329,10 @@ define(
             createElement,
             createTextElement,
             render,
+            View,
+            Text,
+            Button,
+            Input,
         }
     }
 );
